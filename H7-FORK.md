@@ -22,7 +22,40 @@ a quem receber o binário.
 | `applicationId` | `com.linagora.android.teammail` | `com.h7brasil.mail` |
 | Bundle iOS | `com.linagora.ios.teammail` | `com.h7brasil.ios.mail` |
 | Ícones Android | Twake | marca H7 (5 densidades + adaptive) |
+| Splash / wordmark | Twake | marca H7 (`splash`, `branding`, variantes Android 12) |
+| Ícone de notificação | Twake | silhueta H7 |
+| Logos dentro do app | `ic_logo_twake_welcome.svg` e cia. | marca H7 |
+| Tela de boas-vindas | Twake SaaS | pulada (vai direto ao login) |
 | `env.file` | localhost / FCM on | `mail.h7brasil.com` / FCM off |
+
+### A tela de boas-vindas foi pulada de propósito
+
+`TwakeWelcomeController.onInit` chama `handleUseCompanyServer()` num
+`addPostFrameCallback`. A tela original oferece **"Create Twake ID"**
+(`sign-up.twake.app`) e **"Sign in"** (`jmap.twake.app`) — os dois apontam para o
+SaaS da LINAGORA e não servem para quem usa servidor próprio. O app abre
+direto no formulário que resolve o SRV `_jmap._tcp`.
+
+Trade-off conhecido: o botão "voltar" a partir do login não sai mais do app,
+porque volta para a welcome, que redireciona de novo. Sair pelo botão home.
+
+### Rebranding visual é maior do que parece
+
+Trocar o ícone do launcher **não basta**. Estas são superfícies independentes,
+e cada uma manteve a marca da Twake até ser trocada uma a uma:
+
+1. `mipmap-*/ic_launcher*` — ícone do launcher
+2. `drawable/ic_launcher_background` + `drawable-*/ic_launcher_foreground` — adaptive icon
+3. `drawable-*/splash` e `android12splash` — splash nativo
+4. `drawable-*/branding` e `android12branding` — wordmark do splash
+5. `drawable-*/notification_icon` e `drawable/ic_large_notification`
+6. `assets/images/ic_logo_*.svg` — logos renderizados pelo Flutter dentro do app
+
+O item 6 é o que aparece na tela de boas-vindas e **não vem dos recursos do
+Android** — é asset do Flutter, invisível para qualquer inspeção de `res/`.
+
+Nota de verificação: o AAPT2 recomprime PNG no empacotamento, então comparar
+assets do APK por hash dá falso negativo. Compare por dimensão ou visualmente.
 
 ### O `namespace` do Android continua `com.linagora.android.tmail` — de propósito
 
