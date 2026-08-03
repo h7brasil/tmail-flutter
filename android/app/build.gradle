@@ -42,7 +42,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.linagora.android.teammail"
+        applicationId "com.h7brasil.mail"
         minSdkVersion flutterMinSdkVersion.toInteger()
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
@@ -73,9 +73,12 @@ android {
     }
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.release
+            // Use the release keystore when key.properties is present (local/CI with
+            // secrets); otherwise fall back to the debug keystore so that a plain
+            // `flutter build apk --release` still produces an installable APK.
+            signingConfig keystorePropertiesFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
         }
         debug {
             minifyEnabled false

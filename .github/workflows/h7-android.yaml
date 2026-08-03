@@ -1,0 +1,66 @@
+name: H7 Mail — Android APK
+
+# Build proprio do fork: nao usa Fastlane, Firebase nem certificados Apple.
+# O upstream (build.yaml) depende de secrets que este fork nao tem.
+on:
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: "Modo de build"
+        type: choice
+        options: [release, debug]
+        default: release
+  push:
+    branches: [h7-rebrand]
+
+env:
+  FLUTTER_VERSION: 3.38.9
+  JAVA_VERSION: "17"
+
+jobs:
+  android:
+    name: APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          cache-key: deps-${{ hashFiles('pubspec.lock') }}
+
+      # O app le configurations/env.fcm em tempo de build. Push esta desativado
+      # (FCM_AVAILABLE/IOS_FCM vazios no env.file), entao um stub vazio basta e
+      # evita depender de um projeto Firebase.
+      - name: Stub do env.fcm
+        run: |
+          mkdir -p configurations
+          : > configurations/env.fcm
+
+      - name: Prebuild (pub get + build_runner + l10n)
+        run: ./scripts/prebuild.sh
+
+      - name: Build APK
+        run: flutter build apk --${{ github.event.inputs.build_mode || 'release' }} --split-per-abi
+
+      - name: Resumo
+        run: |
+          echo "### APKs gerados" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -lh build/app/outputs/flutter-apk/*.apk | awk '{print $9, $5}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h7mail-android-${{ github.event.inputs.build_mode || 'release' }}
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error

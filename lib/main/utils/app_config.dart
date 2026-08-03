@@ -13,8 +13,11 @@ class AppConfig {
 
   static const String appDashboardConfigurationPath = "configurations/app_dashboard.json";
   static const String attachmentKeywordsConfigurationPath = "configurations/attachment_keywords.json";
-  static const String iOSKeychainSharingGroupId = 'KUT463DS29.com.linagora.ios.teammail.shared';
-  static const String iOSKeychainSharingService = 'com.linagora.ios.teammail.sessions';
+  // TODO(h7): trocar o prefixo pelo Apple Team ID da H7 antes de qualquer build iOS.
+  // O grupo de keychain precisa ser <TEAM_ID>.<bundle id>.shared e bater com o
+  // entitlement do target Runner; se nao bater, a sessao nao persiste entre aberturas.
+  static const String iOSKeychainSharingGroupId = 'REPLACE_WITH_APPLE_TEAM_ID.com.h7brasil.ios.mail.shared';
+  static const String iOSKeychainSharingService = 'com.h7brasil.ios.mail.sessions';
   static const String saasPlatform = 'saas';
   static const String linagoraPrivacyUrl = 'https://github.com/linagora/tmail-flutter/blob/master/privacy.md';
   static const String saasRegistrationUrl = 'https://sign-up.twake.app';
