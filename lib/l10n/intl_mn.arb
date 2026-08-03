@@ -5,7 +5,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "login_text_slogan": "Twake Mail",
+  "login_text_slogan": "H7 Mail",
   "@login_text_slogan": {
     "type": "text",
     "placeholders_order": [],
@@ -817,7 +817,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "app_name": "Twake Mail",
+  "app_name": "H7 Mail",
   "@app_name": {
     "type": "text",
     "placeholders_order": [],
@@ -961,7 +961,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "page_name": "Twake Mail",
+  "page_name": "H7 Mail",
   "@page_name": {
     "type": "text",
     "placeholders_order": [],
@@ -1535,7 +1535,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "languageSubtitle": "Twake Mail дээр ашиглах хэлээ тохируулна уу.",
+  "languageSubtitle": "H7 Mail дээр ашиглах хэлээ тохируулна уу.",
   "@languageSubtitle": {
     "type": "text",
     "placeholders_order": [],
@@ -2541,7 +2541,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "appTitlePushNotification": "Twake Mail",
+  "appTitlePushNotification": "H7 Mail",
   "@appTitlePushNotification": {
     "type": "text",
     "placeholders_order": [],
@@ -3797,7 +3797,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "bannerProgressingRecoveryMessage": "Сэргээлт хийгдэж байна. Та Twake Mail-ийг үргэлжлүүлэн ашиглаж болно",
+  "bannerProgressingRecoveryMessage": "Сэргээлт хийгдэж байна. Та H7 Mail-ийг үргэлжлүүлэн ашиглаж болно",
   "@bannerProgressingRecoveryMessage": {
     "type": "text",
     "placeholders_order": [],
@@ -4049,7 +4049,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "pleaseAllowNotifications": "Төхөөрөмжийн тохиргооноос Twake Mail-ийн мэдэгдлийг зөвшөөрнө үү",
+  "pleaseAllowNotifications": "Төхөөрөмжийн тохиргооноос H7 Mail-ийн мэдэгдлийг зөвшөөрнө үү",
   "@pleaseAllowNotifications": {
     "type": "text",
     "placeholders_order": [],
@@ -4061,7 +4061,7 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "allowsTwakeMailToNotifyYouWhenANewMessageArrivesOnYourPhone": "Шинэ мессеж ирэх үед Twake Mail таныг мэдэгдэхийг зөвшөөрөх",
+  "allowsTwakeMailToNotifyYouWhenANewMessageArrivesOnYourPhone": "Шинэ мессеж ирэх үед H7 Mail таныг мэдэгдэхийг зөвшөөрөх",
   "@allowsTwakeMailToNotifyYouWhenANewMessageArrivesOnYourPhone": {
     "type": "text",
     "placeholders_order": [],
@@ -4751,13 +4751,13 @@
     "placeholders_order": [],
     "placeholders": {}
   },
-  "quotaBannerWarningSubtitleWithPremium": "Мессеж илгээж, Twake Mail-ийн бүх функцийг ашиглахын тулд шаардлагагүй файлуудыг устгах эсвэл хадгалах зайгаа нэмэгдүүлэхийг бодож үзнэ үү.",
+  "quotaBannerWarningSubtitleWithPremium": "Мессеж илгээж, H7 Mail-ийн бүх функцийг ашиглахын тулд шаардлагагүй файлуудыг устгах эсвэл хадгалах зайгаа нэмэгдүүлэхийг бодож үзнэ үү.",
   "@quotaBannerWarningSubtitleWithPremium": {
     "type": "text",
     "placeholders_order": [],
     "placeholders": {}
   },
-  "quotaBannerWarningSubtitleWithoutPremium": "Мессеж илгээж, Twake Mail-ийн бүх функцийг ашиглахын тулд шаардлагагүй файлуудыг устгахыг бодож үзнэ үү.",
+  "quotaBannerWarningSubtitleWithoutPremium": "Мессеж илгээж, H7 Mail-ийн бүх функцийг ашиглахын тулд шаардлагагүй файлуудыг устгахыг бодож үзнэ үү.",
   "@quotaBannerWarningSubtitleWithoutPremium": {
     "type": "text",
     "placeholders_order": [],
