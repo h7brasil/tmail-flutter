@@ -38,11 +38,15 @@ extension HandleCompanyServerLoginInfoExtension on BaseController {
     }
   }
 
+  // H7: sem info de servidor salva (primeira execucao) o upstream manda para a
+  // tela de boas-vindas do SaaS da Twake. Aqui vai direto ao mesmo formulario do
+  // caminho de sucesso, so que sem loginInfo pre-preenchida.
   void handleGetCompanyServerLoginInfoFailure({bool popAllRoute = true}) {
+    final arguments = LoginArguments(LoginFormType.dnsLookupForm);
     if (popAllRoute) {
-      pushAndPopAll(AppRoutes.twakeWelcome);
+      pushAndPopAll(AppRoutes.login, arguments: arguments);
     } else {
-      popAndPush(AppRoutes.twakeWelcome);
+      popAndPush(AppRoutes.login, arguments: arguments);
     }
   }
 }

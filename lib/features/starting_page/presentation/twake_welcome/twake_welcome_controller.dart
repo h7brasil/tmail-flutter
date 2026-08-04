@@ -52,11 +52,6 @@ class TwakeWelcomeController extends ReloadableController {
     if (PlatformInfo.isMobile) {
       _registerDeepLinks();
     }
-    // H7: este build fala com um unico servidor JMAP (mail.h7brasil.com), entao a
-    // tela de boas-vindas nao tem uso — "Create Twake ID" e "Sign in" apontam para
-    // o SaaS da Twake (sign-up.twake.app / jmap.twake.app). Vai direto para o fluxo
-    // de servidor proprio, que resolve o SRV _jmap._tcp do dominio do e-mail.
-    WidgetsBinding.instance.addPostFrameCallback((_) => handleUseCompanyServer());
   }
 
   void _registerDeepLinks() {

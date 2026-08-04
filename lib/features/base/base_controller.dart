@@ -479,8 +479,16 @@ abstract class BaseController extends GetxController
     }
   }
 
+  // H7: este build fala com um unico servidor JMAP. A tela de boas-vindas so
+  // oferece "Create Twake ID" (sign-up.twake.app) e "Sign in" (jmap.twake.app),
+  // ambos do SaaS da LINAGORA. Em vez de monta-la e sair correndo dela — o que
+  // navega no meio da transicao de rota e deixa a tela branca — ela simplesmente
+  // nunca e alcancada: vai direto ao formulario que resolve o SRV _jmap._tcp.
   void navigateToTwakeWelcomePage() {
-    popAndPush(AppRoutes.twakeWelcome);
+    popAndPush(
+      AppRoutes.login,
+      arguments: LoginArguments(LoginFormType.dnsLookupForm),
+    );
   }
 
   void navigateToLoginPage() {
