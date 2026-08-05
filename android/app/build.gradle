@@ -69,6 +69,11 @@ android {
            keyPassword keystoreProperties['keyPassword']
            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
            storePassword keystoreProperties['storePassword']
+           // A keystore da H7 e PKCS12 (gerada com openssl, sem JDK na maquina).
+           // O loader "JKS" do JDK 9+ abre PKCS12 por compatibilidade, mas ser
+           // explicito evita depender desse fallback. Default JKS para nao quebrar
+           // quem tenha uma keystore no formato antigo.
+           storeType keystoreProperties['storeType'] ?: 'JKS'
        }
     }
     buildTypes {

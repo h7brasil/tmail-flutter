@@ -21,6 +21,10 @@ jobs:
   android:
     name: APK
     runs-on: ubuntu-latest
+    env:
+      # O contexto `secrets` nao existe em `if:` de step — so `env`. Por isso a
+      # presenca da keystore vira uma variavel booleana aqui no nivel do job.
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,18 +50,56 @@ jobs:
           mkdir -p configurations
           : > configurations/env.fcm
 
+      # Sem os secrets o build.gradle cai na keystore de debug: o APK sai
+      # instalavel, mas nao publicavel. Com eles, sai assinado de producao.
+      - name: Configurar assinatura de release
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE" | base64 -d > android/h7mail-release.p12
+          cat > android/key.properties <<EOF
+          storeFile=h7mail-release.p12
+          storeType=PKCS12
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          EOF
+          # Falha cedo e com mensagem clara se a keystore nao abrir. A saida vai
+          # para arquivo para nao arriscar vazar nada no log.
+          keytool -list -keystore android/h7mail-release.p12 -storetype PKCS12 \
+            -storepass "$KEYSTORE_PASSWORD" > /tmp/ks.txt
+          echo "Keystore aberta. Entradas de chave privada:"
+          grep -i "PrivateKeyEntry" /tmp/ks.txt | cut -d, -f1
+
       - name: Prebuild (pub get + build_runner + l10n)
         run: ./scripts/prebuild.sh
 
       - name: Build APK
         run: flutter build apk --${{ github.event.inputs.build_mode || 'release' }} --split-per-abi
 
-      - name: Resumo
+      - name: Verificar assinatura do APK
         run: |
-          echo "### APKs gerados" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          ls -lh build/app/outputs/flutter-apk/*.apk | awk '{print $9, $5}' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          APK=$(ls build/app/outputs/flutter-apk/app-arm64-v8a-*.apk | head -1)
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          {
+            echo "### APKs gerados"
+            echo '```'
+            ls -lh build/app/outputs/flutter-apk/*.apk | awk '{print $9, $5}'
+            echo '```'
+            echo "### Assinatura"
+            echo '```'
+            if [ -n "$APKSIGNER" ]; then
+              "$APKSIGNER" verify --print-certs "$APK" \
+                | grep -iE "signer #1 certificate (DN|SHA-256)" || true
+              "$APKSIGNER" verify -v "$APK" | grep -iE "^Verified using" || true
+            else
+              echo "apksigner indisponivel no runner; assinatura nao verificada"
+            fi
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
 
       - uses: actions/upload-artifact@v4
         with:

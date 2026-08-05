@@ -123,3 +123,6 @@ messages_*.dart
 test_bundle.dart
 playwright-report
 test-results
+# keystore de assinatura (H7)
+*.p12
+**/android/h7mail-release.p12
