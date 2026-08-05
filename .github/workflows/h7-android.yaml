@@ -60,8 +60,11 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           echo "$KEYSTORE" | base64 -d > android/h7mail-release.p12
+          # storeFile absoluto de proposito: o key.properties e lido de android/,
+          # mas o file() que o resolve roda em android/app/. Caminho relativo aqui
+          # aponta para android/app/ e o Gradle falha com "Keystore file not found".
           cat > android/key.properties <<EOF
-          storeFile=h7mail-release.p12
+          storeFile=$GITHUB_WORKSPACE/android/h7mail-release.p12
           storeType=PKCS12
           storePassword=$KEYSTORE_PASSWORD
           keyPassword=$KEYSTORE_PASSWORD
