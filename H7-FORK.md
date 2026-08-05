@@ -67,10 +67,61 @@ sem nenhum ganho visível.
 
 ### Assinatura do release
 
-`android/app/build.gradle` passou a cair na keystore de debug quando `key.properties`
-não existe. Sem isso, `flutter build apk --release` falha em qualquer máquina que
-não tenha a keystore da LINAGORA. Para publicar de verdade, gere uma keystore
-própria e crie o `key.properties` — o build passa a usá-la automaticamente.
+`android/app/build.gradle` cai na keystore de debug quando `key.properties` não
+existe — sem isso, `flutter build apk --release` falharia em qualquer máquina que
+não tenha a keystore da LINAGORA. Com os secrets configurados, o CI escreve o
+`key.properties` e o APK sai assinado de produção.
+
+**Chave de produção (gerada em 2026-08-04):**
+
+| | |
+|---|---|
+| Arquivo | `~/.h7mail-signing/h7mail-release.p12` (fora do repositório) |
+| Formato | PKCS12 — gerado com `openssl`, já que não havia JDK na máquina |
+| Chave | RSA 4096, SHA-256 |
+| Alias | `h7mail` |
+| Validade | 2026-08-04 → 2053-12-20 (o Google Play exige até pelo menos 2033) |
+| SHA-256 | `76:0E:B4:5B:17:B0:12:C9:84:BB:80:41:C4:95:85:AC:D2:63:F8:63:45:A4:56:5D:DD:EE:0E:BD:71:75:6D:0E` |
+
+Secrets do repositório: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS`.
+
+**`storeFile` precisa ser caminho absoluto no CI.** O `key.properties` é lido de
+`android/` (`rootProject`), mas o `file()` que resolve o `storeFile` executa no
+projeto `android/app/`. Caminho relativo aponta para o lugar errado e o build
+morre em `validateSigningRelease`.
+
+### Backup da keystore — leia antes que seja tarde
+
+Perder esta chave significa **nunca mais conseguir atualizar o app** para quem já
+o instalou: o Android recusa uma atualização assinada por chave diferente. Não há
+recuperação — nem pelo Google, nem por nós. A única saída seria publicar outro app
+e pedir a todos que desinstalem e reinstalem.
+
+O que fazer, hoje:
+
+1. Guarde `h7mail-release.p12` **e** a senha (`~/.h7mail-signing/.password`) num
+   gerenciador de senhas ou cofre. Os dois juntos, em lugar diferente da máquina.
+2. Não confie nos secrets do GitHub como backup — o GitHub não permite ler um
+   secret de volta, só sobrescrever.
+3. Se um dia usar o Google Play, ative o **Play App Signing**: o Google passa a
+   guardar a chave de assinatura final e a sua vira apenas chave de upload,
+   que é substituível caso se perca.
+
+Para restaurar noutra máquina, ou reenviar aos secrets:
+
+```bash
+base64 -i h7mail-release.p12 | gh secret set ANDROID_KEYSTORE_BASE64 --repo h7brasil/tmail-flutter
+gh secret set ANDROID_KEYSTORE_PASSWORD --repo h7brasil/tmail-flutter < .password
+printf 'h7mail' | gh secret set ANDROID_KEY_ALIAS --repo h7brasil/tmail-flutter
+```
+
+### Quem tem escrita no repositório consegue extrair a chave
+
+Secrets são mascarados no log e não são expostos a PRs de forks, mas qualquer um
+com permissão de escrita pode abrir um workflow que exfiltre o valor. Hoje isso
+significa só você. Ao adicionar colaboradores, considere mover a assinatura para
+um ambiente protegido com revisão obrigatória, ou tirá-la do CI.
 
 ## Push notifications não funcionam — e não é bug de configuração
 
