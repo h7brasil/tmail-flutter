@@ -17,6 +17,7 @@ import 'package:tmail_ui_user/features/login/data/local/account_cache_manager.da
 import 'package:tmail_ui_user/features/login/data/local/token_oidc_cache_manager.dart';
 import 'package:tmail_ui_user/features/login/data/network/authentication_client/authentication_client_base.dart';
 import 'package:tmail_ui_user/features/login/data/network/authentication_client/web_refresh_token_error_classifier.dart';
+import 'package:tmail_ui_user/features/login/domain/exceptions/oauth_authorization_error.dart';
 import 'package:tmail_ui_user/features/login/domain/extensions/oidc_configuration_extensions.dart';
 import 'package:tmail_ui_user/features/upload/data/network/file_uploader.dart';
 import 'package:tmail_ui_user/main/exceptions/remote/authentication_exception.dart';
@@ -243,12 +244,37 @@ class AuthorizationInterceptors extends QueuedInterceptorsWrapper {
     return _handleRefreshErrorOnMobile(error, stackTrace, originalError, handler);
   }
 
+  /// On mobile the refresh runs through flutter_appauth (native), so a rejected
+  /// refresh token never surfaces as a [DioException] — the `statusCode == 400`
+  /// branch in [_refreshTokenThenRetry] is unreachable here. The rejection
+  /// arrives as an [OAuthAuthorizationError] instead, and without this check the
+  /// dead session would be kept and every request would retry forever.
+  ///
+  /// Only a confirmed RFC 6749 rejection logs out; transient codes
+  /// (`server_error`, `temporarily_unavailable`) keep the session so a flaky
+  /// connection does not sign the user out.
   void _handleRefreshErrorOnMobile(
     Object error,
     StackTrace stackTrace,
     DioException originalError,
     ErrorInterceptorHandler handler,
   ) {
+    if (error is OAuthAuthorizationError &&
+        _webErrorClassifier.isServerRejection(error)) {
+      logError(
+        'AuthorizationInterceptors: auth_error_type=token_endpoint_oauth_rejected | '
+        'oauth_error_code=${error.error} | will_logout=true — error=$error',
+        exception: error,
+        stackTrace: stackTrace,
+      );
+      clear();
+      return handler.reject(DioException(
+        requestOptions: originalError.requestOptions,
+        error: RefreshTokenFailedException(),
+        type: DioExceptionType.badResponse,
+      ));
+    }
+
     if (error is DioException) {
       return super.onError(error, handler);
     }

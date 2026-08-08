@@ -159,6 +159,31 @@ Como o Stalwart não serve `/.well-known/webfinger`, o app cai no formulário de
 senha (basic auth), que o Stalwart aceita. **Use um App Password do Stalwart**,
 não a senha principal da conta.
 
+### Refresh token revogado travava o app para sempre
+
+Corrigido em 2026-08-08. Sintoma: caixa de entrada girando sem fim e o toast
+"Unknown error occurred, please try again"; o botão Retry nunca resolvia e só
+limpar os dados do app destravava.
+
+Quando o refresh token é revogado — **trocar a senha da conta no Stalwart faz
+isso** — o `/auth/token` passa a responder `400 invalid_grant`. O upstream trata
+esse 400 em `_refreshTokenThenRetry`, mas **dentro de um `on DioException`**. No
+mobile a renovação não passa por Dio: passa por `_appAuth.token()` do
+flutter_appauth (nativo). O erro sai como `FlutterAppAuthPlatformException`, o
+`handleException` converte em `OAuthAuthorizationError` — que não é
+`DioException` nem `PlatformException` — e caía no catch externo, indo para
+`_handleRefreshErrorOnMobile`, que apenas propagava sem chamar `clear()`.
+Resultado: sessão morta preservada e retry infinito.
+
+A correção classifica `OAuthAuthorizationError` pelos códigos RFC 6749 §5.2 já
+usados no caminho web e, quando é rejeição confirmada, faz `clear()` e devolve
+`RefreshTokenFailedException` — que leva à tela de login. Códigos transitórios
+(`server_error`, `temporarily_unavailable`) continuam preservando a sessão, para
+que conexão instável não deslogue ninguém.
+
+Vale como PR para o upstream: atinge qualquer servidor OIDC próprio, não só o
+Stalwart.
+
 ## Build
 
 Pelo GitHub Actions (nada a instalar):

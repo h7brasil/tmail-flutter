@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:tmail_ui_user/features/login/domain/exceptions/authentication_exception.dart'
     show AccessTokenInvalidException;
+import 'package:tmail_ui_user/features/login/domain/exceptions/oauth_authorization_error.dart';
 
 /// Classifies web token-refresh errors according to RFC 6749 §5.2.
 /// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
@@ -30,7 +31,22 @@ class WebRefreshTokenErrorClassifier {
   bool isServerRejection(Object error) {
     if (error is AccessTokenInvalidException) return true;
     if (error is ArgumentError) return _isArgumentErrorRejection(error);
+    if (error is OAuthAuthorizationError) return _isOAuthErrorRejection(error);
     if (error is DioException) return _isDioRejection(error);
+    return false;
+  }
+
+  /// On mobile the refresh runs through flutter_appauth (native), so a
+  /// token-endpoint rejection never reaches Dio: it arrives as an
+  /// [OAuthAuthorizationError] carrying the RFC 6749 code.
+  bool _isOAuthErrorRejection(OAuthAuthorizationError error) {
+    if (_badGrantCodes.contains(error.error)) return true;
+    // flutter_appauth may report the plugin-level code `token_failed` with the
+    // real RFC 6749 code in the description, mirroring flutter_appauth_web.
+    if (error.error == 'token_failed') {
+      final desc = error.message?.trim();
+      return desc != null && _badGrantCodes.contains(desc);
+    }
     return false;
   }
 

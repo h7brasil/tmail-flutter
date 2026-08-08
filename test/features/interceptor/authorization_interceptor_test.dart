@@ -2167,7 +2167,8 @@ void main() {
 
       test(
         'WHEN refresh throws OAuthAuthorizationError (e.g. invalid_grant)\n'
-        'THEN propagated DioException still has NO HTTP response',
+        'THEN the session is torn down and RefreshTokenFailedException is raised\n'
+        'AND the propagated DioException still has NO HTTP response',
         () async {
           authorizationInterceptors.setTokenAndAuthorityOidc(
             newToken: OIDCFixtures.tokenOidcExpiredTime,
@@ -2196,12 +2197,19 @@ void main() {
             errorDescription: 'The refresh token has been revoked',
           ));
 
+          stubAccountCache();
+
           await expectLater(
             () => dio.post(baseUrl),
             throwsA(predicate<DioException>((e) {
               return e.response == null &&
-                  e.error is OAuthAuthorizationError;
+                  e.error is RefreshTokenFailedException;
             })),
+          );
+
+          expect(
+            authorizationInterceptors.authenticationType,
+            AuthenticationType.none,
           );
         },
       );
@@ -2961,6 +2969,109 @@ void main() {
         )).called(1);
       },
     );
+  });
+
+  // ============================================================
+  // onError: MOBILE refresh rejected by the token endpoint
+  // On mobile the refresh runs through flutter_appauth (native), NOT Dio, so a
+  // 400 invalid_grant never surfaces as a DioException — it arrives as an
+  // OAuthAuthorizationError. Without this handling the session stays alive and
+  // the app retries forever instead of sending the user back to login.
+  // ============================================================
+  group('onError: mobile refresh rejected by token endpoint', () {
+    for (final rejection in const <OAuthAuthorizationError>[
+      OAuthAuthorizationError(
+        error: 'invalid_grant',
+        errorDescription: 'The refresh token has been revoked',
+      ),
+      OAuthAuthorizationError(error: 'invalid_client'),
+      OAuthAuthorizationError(error: 'unauthorized_client'),
+      OAuthAuthorizationError(error: 'invalid_scope'),
+    ]) {
+      test(
+        'WHEN refresh throws OAuthAuthorizationError(${rejection.error}) on mobile\n'
+        'THEN rejected with RefreshTokenFailedException (→ forced logout)\n'
+        'AND OIDC state is cleared',
+        () async {
+          stubWebRefresh401ThenThrow(rejection);
+          stubAccountCache();
+
+          await expectLater(
+            () => dio.post(baseUrl),
+            throwsA(predicate<DioException>((e) {
+              return e.error is RefreshTokenFailedException;
+            })),
+          );
+
+          expect(
+            authorizationInterceptors.authenticationType,
+            AuthenticationType.none,
+          );
+        },
+      );
+    }
+
+    // flutter_appauth can report a token-endpoint rejection as the plugin-level
+    // code `token_failed`, with the real RFC 6749 code in the description.
+    test(
+      'WHEN refresh throws OAuthAuthorizationError(token_failed) '
+      'with description invalid_grant\n'
+      'THEN rejected with RefreshTokenFailedException (→ forced logout)\n'
+      'AND OIDC state is cleared',
+      () async {
+        stubWebRefresh401ThenThrow(const OAuthAuthorizationError(
+          error: 'token_failed',
+          errorDescription: 'invalid_grant',
+        ));
+        stubAccountCache();
+
+        await expectLater(
+          () => dio.post(baseUrl),
+          throwsA(predicate<DioException>((e) {
+            return e.error is RefreshTokenFailedException;
+          })),
+        );
+
+        expect(
+          authorizationInterceptors.authenticationType,
+          AuthenticationType.none,
+        );
+      },
+    );
+
+    // Anything that is not a confirmed server rejection must keep the session,
+    // so a flaky mobile connection does not log the user out.
+    for (final transient in const <OAuthAuthorizationError>[
+      ServerError(),
+      TemporarilyUnavailable(),
+      OAuthAuthorizationError(
+        error: 'token_failed',
+        errorDescription: 'Network is unreachable',
+      ),
+    ]) {
+      test(
+        'WHEN refresh throws OAuthAuthorizationError(${transient.error}) '
+        'that is NOT a server rejection\n'
+        'THEN session is KEPT and the original error is propagated',
+        () async {
+          stubWebRefresh401ThenThrow(transient);
+          stubAccountCache();
+
+          await expectLater(
+            () => dio.post(baseUrl),
+            throwsA(predicate<DioException>((e) {
+              return e.error is OAuthAuthorizationError &&
+                  e.error is! RefreshTokenFailedException;
+            })),
+          );
+
+          expect(
+            authorizationInterceptors.authenticationType,
+            AuthenticationType.oidc,
+          );
+        },
+      );
+    }
   });
 
   // ============================================================
