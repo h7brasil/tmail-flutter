@@ -80,8 +80,34 @@ jobs:
       - name: Prebuild (pub get + build_runner + l10n)
         run: ./scripts/prebuild.sh
 
+      # Depois do prebuild de proposito: boa parte da suite so compila com os mocks
+      # que o build_runner gera. Ate aqui o workflow so buildava, entao CI verde
+      # significava apenas "compilou" — o fix do refresh token (3076ed5) subiu com 91
+      # testes que nunca rodaram neste pipeline.
+      - name: Testes
+        run: flutter test
+
+      # O versionCode nunca foi numerado: o pubspec nao tem build number, entao a base
+      # era sempre 1 e o --split-per-abi so somava o offset da ABI (1000/2000/4000).
+      # Todo build saia identico — 2001 / 0.33.0 — e nao dava para saber pelo aparelho
+      # qual APK estava instalado. Foi assim que um APK com correcao ficou parado sem
+      # ninguem perceber. run_number e monotonico e pequeno; run_id (~3e10) estouraria
+      # o teto de versionCode do Android (2100000000).
+      - name: Numerar o build
+        id: versao
+        run: |
+          set -euo pipefail
+          BASE=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          echo "name=${BASE}+${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "versionName=${BASE}+${{ github.run_number }} (versionCode base ${{ github.run_number }}; arm64 = 2000 + base)" \
+            >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build APK
-        run: flutter build apk --${{ github.event.inputs.build_mode || 'release' }} --split-per-abi
+        run: |
+          flutter build apk --${{ github.event.inputs.build_mode || 'release' }} --split-per-abi \
+            --build-name="${{ steps.versao.outputs.name }}" \
+            --build-number="${{ steps.versao.outputs.code }}"
 
       # Verificacao de verdade: sem `|| true`, para que uma assinatura invalida
       # derrube o build em vez de passar despercebida. A saida vai para o log e
